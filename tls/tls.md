@@ -125,8 +125,8 @@ TODO: Añadir diagrama simple
 5. El servidor manda un mensaje _ServerHelloDone_.
 6. El cliente comprueba la validez del certificado digital enviado por el servidor contra su _truststore_, que es su almacen de claves públicas de CAs. Comprueba entre otras cosas que el hostname del servidor sea el mismo que el obtenido en el certificado.
 7. El cliente, tras verificar la validez del certificado contesta con un mensaje _ClientKeyExchange_ que contiene una _PreMasterSecret_ que es cifrada con la clave pública del servidor, que está incluido en el certificado digital de éste.
-8. El servidor recibe la _PreMasterSecret_ cifrada con su clave pública y la descifra con su clave privada, que está incluida en su keystore.
-9. Tanto cliente como servidor generar la misma clave simétrica a partir de los 2 números aleatorios generados prevaimente y la _PreMasterSecret_.
+8. El servidor recibe la _PreMasterSecret_ cifrada con su clave pública y la descifra con su clave privada, que está almacenada en su keystore.
+9. Tanto cliente como servidor generan la misma clave simétrica a partir de los 2 números aleatorios generados previamente y la _PreMasterSecret_.
 10. El cliente manda un mensaje _ChangeChiperSpec_ diciendo que a partir de ahora todo estará cifrado y autenticado en la comunicación.
 11. El cliente manda un mensaje _Finished_ cifrado y autenticado, con un hash y MAC del mensaje anterior.
 12. El servidor descrifra y valida la autenticidad del mensaje _Finished_ del cliente.
@@ -136,15 +136,17 @@ TODO: Añadir diagrama simple
 
 Una vez entendido (más o menos) el proceso me gustaría puntualizar una serie de matices de problemas que suelen darse y que provocan que esta comunicación no funcione correctamente o no llegue a realizarse.
 
-+ El servidor debe tener un _keystore_ que no es otra cosa que es una almacen de certificados digitales con sus claves privadas asociadas. Es necesario tener tanto la clave privada como la pública (certificado). Si no hay certificado no hay nada que enviar al cliente para demostrar nuestra identidad y si no hay clave privada no podremos descifrar el _PreSharedSecert_ cifrado por el cliente.
++ El servidor debe tener un _keystore_ que no es otra cosa que es una almacen de certificados digitales con sus claves privadas asociadas. Es necesario tener tanto la clave privada como la pública (certificado). Si no hay certificado no hay nada que enviar al cliente para demostrar nuestra identidad y si no hay clave privada no podremos descifrar el _PreMasterSecret_ cifrado por el cliente.
 + El cliente debe tener un _truststore_ que no es otra cosa que un almacen de certificados _Root_ de CAs conocidas. Si no hay _truststore_ el cliente no puede verificar la autenticidad del certificado del servidor, de misma manera tampoco podra verificarlo si está firmado por una CA cuyo certificado Root no está almacenado en el truststore, que es lo que ocurriría si utilizamos certificados _self-signed_.
 + Tanto servidor como cliente deben poder utilizar protocolos comunes, tanto de versión de TLS como de algoritmos de cifrado y compresión.
-+ El certificado del servidor tiene una serie de información asociada (_subject_) como puede ser O, OU, CN, C, ST, L, etc. El _Common Name (CN)_ es el hostname de la propia máquina. Si este CN no concuerda con el de la máquina a la que nos conectamos el proceso de verificación fallará.
++ El certificado del servidor tiene una serie de información asociada (_subject_) como puede ser O, OU, CN, C, ST, L, etc. El _Common Name (CN)_ es el hostname de la propia máquina. Si este CN no concuerda con el de la máquina a la que nos conectamos el proceso de verificación fallará. Este CN debe ser el FQDN de la máquina.
 + Algunos servicios no soportan algoritmos de cifrados obsoletos o poco seguros como SHA1 o RSA 1024, utilizar protocolos más seguros como SHA2 o RSA 4096.
 + Repito, el _truststore_ almacena claves públicas de CAs y el _keystore_ almacena certificados públicos y sus claves privadas asociadas.
-+ En el _truststore_ se pueden almacenar a fuego los certificados del servidor, pero no es buena práctica. Deben almacenarse únicamente los certificados Root de las CA.
-+ Los certificados pueden venir configurados para servir para diferentes elementos que pertenezcan a una misma compañia. Esto se define como _Extensiones_ dentro del certifinado con el apartado que se denomina _Subject Alternative Names_. Este parámetro nos permite definir varios nombres para el certificado, Google, por ejemplo, utiliza el mismo certificado para las urls, `google.es`, `goo.gl` o incluye `youtube.com`.
++ En el _truststore_ se pueden almacenar "a fuego" los certificados del servidor, pero no es buena práctica. Deben almacenarse únicamente los certificados Root de las CA.
++ En un _keystore_ no deben almacenarse certificados CA Root.
++ Los certificados pueden venir configurados para servir para diferentes elementos que pertenezcan a una misma compañia, como por ejemplo paginas web con diferentes DNS. Esto se define en el campo _Extensiones_ dentro del certificado con el parámetro _Subject Alternative Names_. Este parámetro nos permite definir varios nombres para el certificado. Google, por ejemplo, utiliza el mismo certificado para las urls, `google.es`, `goo.gl` o incluso `youtube.com`. Podemos hacer uso también de _wildcards_, ejemplo, `*.google.es`.
 + En caso de hacer uso de CA intermedias, el certificado ofrecido por el servidor deben contener tanto el certificado del servidor como el de la CA intermedia, en caso contrario no funcionará.
++ Tener claro que un certificado no es otra cosa que una clave pública firmada y una serie de datos asociados a ésta.
 
 
 
